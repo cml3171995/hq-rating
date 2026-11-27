@@ -134,8 +134,10 @@ td.editable:hover{outline:3px solid rgba(29,95,168,.35);outline-offset:-3px;}
     <div class="admin-box">
       <div class="save-bar">
         <span>后台管理 · 点击矩阵单元格评级打分</span>
-        <span style="display:flex;gap:14px;align-items:center;">
+        <span style="display:flex;gap:10px;align-items:center;">
           <span class="dirty hidden" id="dirtyTip">● 有未保存修改</span>
+          <button class="btn secondary" id="newMonthBtn">＋ 开始新月</button>
+          <button class="btn danger" id="delMonthBtn">删除本月</button>
           <button class="btn" id="saveBtn">保存到云端</button>
         </span>
       </div>
@@ -346,6 +348,45 @@ function openPop(sec,grp){
     dirty=true;markDirty();div.remove();renderAdmin();renderShow();
   };
 }
+
+/* ============ 新月管理 ============ */
+function nextMonthKey(){
+  var ms=monthList(); if(!ms.length){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+  var p=ms[ms.length-1].split('-'); var y=+p[0],mo=+p[1]+1; if(mo>12){mo=1;y++;}
+  return y+'-'+String(mo).padStart(2,'0');
+}
+function openNewMonth(){
+  var def=nextMonthKey();
+  var div=document.createElement('div');div.className='level-pop';div.id='pop';
+  div.innerHTML='<div class="pop-card"><h3>开始新月评级</h3>'+
+    '<input id="nmKey" type="month" value="'+def+'" style="margin-bottom:10px;">'+
+    '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:10px;"><input type="radio" name="nmMode" value="blank" checked>空白开评</label>'+
+    '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:16px;"><input type="radio" name="nmMode" value="copy">复制上月评级为底稿（可在此基础上改）</label>'+
+    '<div class="btns"><button class="btn secondary" id="nmCancel">取消</button><button class="btn" id="nmOk">创建</button></div></div>';
+  document.body.appendChild(div);
+  document.getElementById('nmCancel').onclick=function(){div.remove();};
+  document.getElementById('nmOk').onclick=function(){
+    var mk=document.getElementById('nmKey').value;
+    if(!mk){div.remove();return;}
+    if(data.months[mk]&&data.months[mk]&&Object.keys(data.months[mk]).length&&!confirm(mk+' 已有数据，覆盖？')){div.remove();return;}
+    var copy=document.querySelector('input[name=nmMode]:checked').value==='copy';
+    var src=prevOf(mk);
+    var nm={};
+    if(copy&&src){Object.keys(data.months[src]).forEach(function(k){nm[k]=JSON.parse(JSON.stringify(data.months[src][k]));});}
+    data.months[mk]=nm;
+    dirty=true;markDirty();div.remove();
+    curMonth=refreshMonths(mk);renderAdmin();renderShow();
+  };
+}
+function prevOf(mk){var ms=monthList().filter(function(m){return m<mk;});return ms.length?ms[ms.length-1]:null;}
+document.getElementById('newMonthBtn').onclick=openNewMonth;
+document.getElementById('delMonthBtn').onclick=function(){
+  if(monthList().length<=1){alert('至少保留一个月份');return;}
+  if(!confirm('删除 '+fmt(curMonth)+' 的全部评级记录？不可恢复'))return;
+  delete data.months[curMonth];
+  dirty=true;markDirty();
+  curMonth=refreshMonths();renderAdmin();renderShow();
+};
 
 /* ============ 事件 ============ */
 document.getElementById('monthSel').onchange=function(){curMonth=this.value;renderShow();if(!document.getElementById('adminView').classList.contains('hidden'))renderAdmin();};
