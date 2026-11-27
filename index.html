@@ -225,7 +225,7 @@ function saveCloud(cb){ /* PUT直传：超时重试+409重取sha */
       cb(false,'HTTP '+st);
     });
   }
-  fetchSha(function(sha){attempt(sha,2);});
+  fetchSha(function(sha){attempt(sha,4);});
 }
 
 /* ============ 工具 ============ */
