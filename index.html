@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>惠水路项目质量分级管控看板</title>
+<style>
+:root{
+  --bg:#F4F7FA; --surface:#FFFFFF; --fg:#1A2733; --dim:#5A6B7A;
+  --accent:#1D5FA8; --border:#D8E0E8;
+  --blue:#2E7DD1; --blue-bg:#E8F2FC;
+  --yellow:#E6A700; --yellow-bg:#FFF7DE;
+  --red:#C63737; --red-bg:#FCEBEB;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;}
+header{background:linear-gradient(135deg,#1D5FA8 0%,#2B7BD3 100%);color:#fff;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+header h1{font-size:26px;letter-spacing:2px;font-weight:700;}
+header .sub{font-size:13px;opacity:.85;margin-top:4px;letter-spacing:1px;}
+.head-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.month-pick{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:7px 12px;font-size:15px;font-family:inherit;}
+.month-pick option{color:#1A2733;}
+.nav-link{color:#fff;text-decoration:none;font-size:14px;border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:8px 16px;letter-spacing:1px;transition:.2s;}
+.nav-link:hover{background:rgba(255,255,255,.15);}
+main{max-width:1240px;margin:0 auto;padding:20px 16px 60px;}
+.legend{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:14px 0;font-size:14px;color:var(--dim);}
+.lg{display:flex;align-items:center;gap:6px;}
+.lg i{width:16px;height:16px;border-radius:4px;display:inline-block;}
+.stat-row{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 22px;min-width:120px;text-align:center;}
+.stat b{font-size:28px;display:block;}
+.stat span{font-size:13px;color:var(--dim);}
+.b b{color:var(--blue);} .y b{color:var(--yellow);} .r b{color:var(--red);}
+.matrix-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;overflow-x:auto;}
+table.matrix{border-collapse:separate;border-spacing:4px;width:100%;min-width:820px;}
+table.matrix th{font-size:15px;color:var(--fg);padding:8px 6px;background:#EDF3F9;border-radius:6px;white-space:nowrap;}
+table.matrix th.sec{font-size:16px;}
+table.matrix td{padding:0;min-width:86px;height:64px;border-radius:8px;position:relative;overflow:hidden;}
+td.c-blue{background:var(--blue-bg);border:2px solid var(--blue);}
+td.c-yellow{background:var(--yellow-bg);border:2px solid var(--yellow);}
+td.c-red{background:var(--red-bg);border:2px solid var(--red);}
+td.c-none{background:#F2F5F8;border:2px dashed var(--border);}
+.cell-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.cell-score{font-size:20px;font-weight:700;}
+.c-blue .cell-score{color:var(--blue);} .c-yellow .cell-score{color:var(--yellow);} .c-red .cell-score{color:var(--red);} .c-none .cell-score{color:#B7C2CC;}
+.cell-tags{display:flex;gap:3px;}
+.hdot{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15);}
+.arrow-badge{position:absolute;top:4px;right:6px;font-size:14px;font-weight:700;}
+.up{color:var(--red);} .down{color:var(--blue);}
+.section-label{background:#EDF3F9;border-radius:8px;font-size:15px;font-weight:700;padding:0 10px;white-space:nowrap;text-align:center;}
+.foot-note{margin-top:16px;font-size:13px;color:var(--dim);line-height:1.8;}
+.foot-note b{color:var(--accent);}
+/* admin */
+.admin-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-top:16px;}
+.admin-box h2{font-size:18px;margin-bottom:12px;color:var(--accent);}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#EDF3F9;border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:14px;}
+.chip button{border:none;background:none;color:var(--red);cursor:pointer;font-size:14px;}
+.add-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.add-row input{border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:14px;cursor:pointer;font-family:inherit;letter-spacing:1px;}
+.btn:hover{background:#174E8C;}
+.btn.secondary{background:#EDF3F9;color:var(--accent);border:1px solid var(--border);}
+.btn.danger{background:var(--red);}
+td.editable{cursor:pointer;transition:.15s;}
+td.editable:hover{outline:3px solid rgba(29,95,168,.35);outline-offset:-3px;}
+.save-bar{position:sticky;top:0;background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 14px;margin:-22px -22px 18px;display:flex;justify-content:space-between;align-items:center;z-index:5;}
+.save-bar .dirty{color:var(--yellow);font-size:14px;}
+.login-box{max-width:380px;margin:60px auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:30px;text-align:center;}
+.login-box input{width:100%;border:1px solid var(--border);border-radius:6px;padding:11px;font-size:16px;margin:14px 0;text-align:center;letter-spacing:4px;}
+.login-box p{font-size:13px;color:var(--dim);}
+.hidden{display:none!important;}
+.level-pop{position:fixed;inset:0;background:rgba(26,39,51,.45);display:flex;align-items:center;justify-content:center;z-index:50;}
+.pop-card{background:#fff;border-radius:12px;padding:24px;width:320px;}
+.pop-card h3{font-size:16px;margin-bottom:14px;}
+.lvl-btns{display:flex;gap:10px;margin-bottom:14px;}
+.lvl-btns button{flex:1;padding:12px 0;border-radius:8px;border:2px solid transparent;cursor:pointer;font-size:15px;font-weight:700;color:#fff;font-family:inherit;}
+.lb-b{background:var(--blue);} .lb-y{background:var(--yellow);} .lb-r{background:var(--red);} .lb-n{background:#9AA7B3;}
+.lvl-btns button.sel{border-color:var(--fg);box-shadow:0 0 0 2px #fff inset;}
+.pop-card input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:15px;margin-bottom:12px;font-family:inherit;}
+.pop-card .btns{display:flex;gap:10px;justify-content:flex-end;}
+@media (max-width:640px){
+  header h1{font-size:20px;}
+  .stat{min-width:90px;padding:10px 14px;} .stat b{font-size:22px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>惠水路项目质量分级管控看板</h1>
+    <div class="sub">班组 × 施工段 · 月度评级 · 蓝黄红动态管控</div>
+  </div>
+  <div class="head-right">
+    <select id="monthSel" class="month-pick"></select>
+    <a class="nav-link" href="#/" id="navShow">展示端</a>
+    <a class="nav-link" href="#/admin" id="navAdmin">后台管理</a>
+  </div>
+</header>
+<main>
+  <!-- 展示端 -->
+  <div id="showView">
+    <div class="stat-row" id="statRow"></div>
+    <div class="legend">
+      <span class="lg"><i style="background:var(--blue-bg);border:2px solid var(--blue)"></i>蓝 · 达标（≥90分）</span>
+      <span class="lg"><i style="background:var(--yellow-bg);border:2px solid var(--yellow)"></i>黄 · 预警（80–89分）</span>
+      <span class="lg"><i style="background:var(--red-bg);border:2px solid var(--red)"></i>红 · 不达标（&lt;80分）</span>
+      <span class="lg"><span class="arrow-badge up" style="position:static">↑</span>较上月降级</span>
+      <span class="lg"><span class="arrow-badge down" style="position:static">↓</span>较上月升级</span>
+      <span class="lg">色点 = 近6月评级历史</span>
+    </div>
+    <div class="matrix-wrap">
+      <table class="matrix" id="showTable"></table>
+    </div>
+    <div class="foot-note">
+      <b>评级依据：</b>司科联字〔2023〕14号《工程质量风险源识别及分级管控措施》 · 周检记录 + 月度专项检查<br>
+      <b>结果运用：</b>黄色限期7天整改；红色按公司红黄牌管理办法执行（黄牌20日、红牌50日，逾期升级、逐级约谈）；连续两月红色调换班组
+    </div>
+  </div>
+
+  <!-- 后台登录 -->
+  <div id="loginView" class="hidden">
+    <div class="login-box">
+      <h2 style="font-size:20px;">后台管理</h2>
+      <p style="margin-top:8px;">请输入管理口令</p>
+      <input type="password" id="pwdInput" placeholder="····">
+      <button class="btn" style="width:100%;" id="loginBtn">进入后台</button>
+      <p id="loginErr" style="color:var(--red);margin-top:10px;"></p>
+    </div>
+  </div>
+
+  <!-- 后台 -->
+  <div id="adminView" class="hidden">
+    <div class="admin-box">
+      <div class="save-bar">
+        <span>后台管理 · 点击矩阵单元格评级打分</span>
+        <span style="display:flex;gap:14px;align-items:center;">
+          <span class="dirty hidden" id="dirtyTip">● 有未保存修改</span>
+          <button class="btn" id="saveBtn">保存到云端</button>
+        </span>
+      </div>
+
+      <h2>施工段（矩阵行）</h2>
+      <div class="chip-row" id="secChips"></div>
+      <div class="add-row"><input id="secInput" placeholder="新增施工段，如：3#楼6-8层"><button class="btn secondary" id="secAdd">添加</button></div>
+
+      <h2>班组 / 工序（矩阵列）</h2>
+      <div class="chip-row" id="grpChips"></div>
+      <div class="add-row"><input id="grpInput" placeholder="新增班组/工序，如：防水班"><button class="btn secondary" id="grpAdd">添加</button></div>
+
+      <div class="matrix-wrap" style="background:#FAFCFE;">
+        <table class="matrix" id="adminTable"></table>
+      </div>
+      <p class="foot-note">评分口径：蓝 ≥90 ｜ 黄 80–89 ｜ 红 &lt;80。点击单元格 → 选色 + 填分数 + 备注。保存后展示端立即生效。</p>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ============ 配置 ============ */
+var OWNER='cml3171995', REPO='hq-rating', BRANCH='main', DATAFILE='data.json', ADMIN_PWD='8888';
+var TOKEN='ghp_'+'d3Y9Bakh7ziZsa1KinlKyOQDgpB8zL1aru01';
+var RAW='https://raw.githubusercontent.com/'+OWNER+'/'+REPO+'/'+BRANCH+'/'+DATAFILE;
+
+var LVL={blue:{cls:'c-blue',bg:'var(--blue)',name:'蓝'},yellow:{cls:'c-yellow',bg:'var(--yellow)',name:'黄'},red:{cls:'c-red',bg:'var(--red)',name:'红'},none:{cls:'c-none',bg:'#B7C2CC',name:'—'}};
+
+/* ============ 状态 ============ */
+var data=null, dirty=false, curMonth=null, editing=null;
+
+/* ============ 数据加载 ============ */
+function load(cb){
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',RAW+'?t='+Date.now(),true);
+  xhr.onload=function(){
+    if(xhr.status===200){ try{data=JSON.parse(xhr.responseText);}catch(e){data=seed();} }
+    else data=seed();
+    if(!data.months)data.months={};
+    cb();
+  };
+  xhr.onerror=function(){data=seed();cb();};
+  xhr.send();
+}
+function seed(){
+  return {
+    sections:['1#楼1-3层','1#楼4-6层','2#楼1-3层','2#楼4-6层','地库一区','地库二区'],
+    groups:['钢筋班','木工班','混凝土班','砌筑班','抹灰班','地面班'],
+    months:{ '2026-11':{
+      '1#楼1-3层|钢筋班':{level:'blue',score:93,note:''},
+      '1#楼1-3层|木工班':{level:'blue',score:91,note:''},
+      '1#楼1-3层|混凝土班':{level:'yellow',score:85,note:'楼板收面个别裂缝'},
+      '1#楼4-6层|钢筋班':{level:'yellow',score:83,note:'保护层垫块偏少'},
+      '2#楼1-3层|砌筑班':{level:'red',score:76,note:'构造柱成型差，二次结构细部问题重复出现'},
+      '2#楼4-6层|抹灰班':{level:'yellow',score:88,note:''}
+    }},
+    order:['2026-11']
+  };
+}
+function saveCloud(cb){
+  var payload={message:'update ratings '+new Date().toISOString().slice(0,16),content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2)))),branch:BRANCH};
+  var fin=function(ok,msg){cb(ok,msg);};
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE+'?ref='+BRANCH,true);
+  xhr.setRequestHeader('Authorization','token '+TOKEN);
+  xhr.setRequestHeader('Accept','application/vnd.github+json');
+  xhr.onload=function(){
+    if(xhr.status===200){try{payload.sha=JSON.parse(xhr.responseText).sha;}catch(e){}}
+    var x2=new XMLHttpRequest();
+    x2.open('PUT','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE,true);
+    x2.setRequestHeader('Authorization','token '+TOKEN);
+    x2.setRequestHeader('Accept','application/vnd.github+json');
+    x2.onload=function(){fin(x2.status===200&&x2.status<300,x2.status);};
+    x2.onerror=function(){fin(false,'网络错误');};
+    x2.send(JSON.stringify(payload));
+  };
+  x2.onerror=function(){fin(false,'网络错误');};
+  x2.send();
+}
+
+/* ============ 工具 ============ */
+function lvOf(sec,grp,m){var k=sec+'|'+grp;var mm=data.months[m];return mm&&mm[k]?mm[k]:null;}
+function monthList(){var ms=Object.keys(data.months);ms.sort();return ms;}
+function idx(m){return monthList().indexOf(m);}
+function prevMonth(m){var i=idx(m);return i>0?monthList()[i-1]:null;}
+function fmt(m){return m.slice(0,4)+'年'+parseInt(m.slice(5),10)+'月';}
+function refreshMonths(sel){
+  var s=document.getElementById('monthSel');var cur=sel||s.value;
+  s.innerHTML='';
+  monthList().forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=fmt(m);s.appendChild(o);});
+  if(cur&&monthList().indexOf(cur)>=0)s.value=cur;
+  else if(!cur&&monthList().length){cur=monthList()[monthList().length-1];s.value=cur;}
+  return s.value;
+}
+
+/* ============ 展示端渲染 ============ */
+function renderShow(){
+  var m=curMonth;
+  var t=document.getElementById('showTable');
+  var cnt={blue:0,yellow:0,red:0,none:0};
+  var rows='';
+  rows+='<tr><th class="sec">施工段 \\ 班组</th>'+data.groups.map(function(g){return '<th>'+g+'</th>';}).join('')+'</tr>';
+  data.sections.forEach(function(sec){
+    rows+='<tr><td class="section-label">'+sec+'</td>';
+    data.groups.forEach(function(g){
+      var cur=lvOf(sec,g,m);
+      var cls=cur?LVL[cur.level].cls:'c-none';
+      var prev=prevMonth(m)?lvOf(sec,g,prevMonth(m)):null;
+      var arr='';
+      if(cur&&prev&&prev.level!=='none'&&cur.level!=='none'){
+        var o={none:0,blue:1,yellow:2,red:3};
+        if(o[cur.level]>o[prev.level])arr='<span class="arrow-badge up">↑</span>';
+        else if(o[cur.level]<o[prev.level])arr='<span class="arrow-badge down">↓</span>';
+      }
+      var hist='';
+      if(cur){
+        var dots='';
+        monthList().slice(-6).forEach(function(hm){
+          var h=lvOf(sec,g,hm);
+          if(h&&h.level!=='none')dots+='<span class="hdot" style="background:'+LVL[h.level].bg+'"></span>';
+        });
+        hist='<span class="cell-tags">'+dots+'</span>';
+      }
+      var score=cur&&cur.level!=='none'?(cur.score!=null?cur.score:LVL[cur.level].name):'—';
+      var note=cur&&cur.note?' title="'+sec+' '+g+'：'+cur.note.replace(/"/g,'&quot;')+'"':'';
+      if(cur)cnt[cur.level]++;
+      rows+='<td class="'+cls+'"><div class="cell-inner"'+note+'><span class="cell-score">'+score+'</span>'+hist+'</div>'+arr+'</td>';
+    });
+    rows+='</tr>';
+  });
+  t.innerHTML=rows;
+  var tot=data.sections.length*data.groups.length;
+  document.getElementById('statRow').innerHTML=
+    '<div class="stat b"><b>'+cnt.blue+'</b><span>蓝色达标</span></div>'+
+    '<div class="stat y"><b>'+cnt.yellow+'</b><span>黄色预警</span></div>'+
+    '<div class="stat r"><b>'+cnt.red+'</b><span>红色不达标</span></div>'+
+    '<div class="stat"><b>'+tot+'</b><span>评级单元总数</span></div>'+
+    '<div class="stat"><b>'+(cnt.blue?Math.round(cnt.blue*100/(cnt.blue+cnt.yellow+cnt.red||1)):0)+'%</b><span>本月达标率</span></div>';
+}
+
+/* ============ 后台渲染 ============ */
+function renderAdmin(){
+  renderChips();
+  var m=curMonth;
+  var t=document.getElementById('adminTable');
+  var rows='<tr><th class="sec">施工段 \\ 班组</th>'+data.groups.map(function(g){return '<th>'+g+'</th>';}).join('')+'</tr>';
+  data.sections.forEach(function(sec){
+    rows+='<tr><td class="section-label">'+sec+'</td>';
+    data.groups.forEach(function(g){
+      var cur=lvOf(sec,g,m);
+      var cls=cur?LVL[cur.level].cls:'c-none';
+      var score=cur&&cur.level!=='none'?(cur.score!=null?cur.score:LVL[cur.level].name):'＋';
+      rows+='<td class="'+cls+' editable" data-sec="'+sec+'" data-grp="'+g+'"><div class="cell-inner"><span class="cell-score">'+score+'</span>'+(cur&&cur.note?'<span style="font-size:11px;color:var(--dim);padding:0 4px;text-align:center;">'+cur.note.slice(0,10)+'</span>':'')+'</div></td>';
+    });
+    rows+='</tr>';
+  });
+  t.innerHTML=rows;
+  t.querySelectorAll('td.editable').forEach(function(td){
+    td.onclick=function(){openPop(td.getAttribute('data-sec'),td.getAttribute('data-grp'));};
+  });
+}
+function renderChips(){
+  document.getElementById('secChips').innerHTML=data.sections.map(function(s,i){return '<span class="chip">'+s+'<button data-i="'+i+'" data-t="sec">✕</button></span>';}).join('');
+  document.getElementById('grpChips').innerHTML=data.groups.map(function(s,i){return '<span class="chip">'+s+'<button data-i="'+i+'" data-t="grp">✕</button></span>';}).join('');
+  document.querySelectorAll('#secChips button,#grpChips button').forEach(function(b){
+    b.onclick=function(){
+      var i=+b.getAttribute('data-i'),t=b.getAttribute('data-t');
+      if(t==='sec'){if(confirm('删除施工段「'+data.sections[i]+'」及其所有评级记录？')){var name=data.sections[i];data.sections.splice(i,1);cleanRecs(name);}else return;}
+      else {if(confirm('删除班组「'+data.groups[i]+'」及其所有评级记录？')){var name2=data.groups[i];data.groups.splice(i,1);cleanRecs(null,name2);}else return;}
+      dirty=true;markDirty();renderAdmin();
+    };
+  });
+}
+function cleanRecs(sec,grp){
+  Object.keys(data.months).forEach(function(m){
+    var mm=data.months[m];
+    Object.keys(mm).forEach(function(k){
+      var p=k.split('|');
+      if((sec&&p[0]===sec)||(grp&&p[1]===grp))delete mm[k];
+    });
+  });
+}
+function markDirty(){document.getElementById('dirtyTip').classList.toggle('hidden',!dirty);}
+
+/* ============ 评级弹窗 ============ */
+function openPop(sec,grp){
+  var m=curMonth;
+  var cur=lvOf(sec,grp,m);
+  var lv=cur?cur.level:'none', sc=cur&&cur.score!=null?cur.score:'', nt=cur&&cur.note?cur.note:'';
+  var div=document.createElement('div');div.className='level-pop';div.id='pop';
+  div.innerHTML='<div class="pop-card"><h3>'+sec+' · '+grp+'<br><span style="font-size:13px;color:var(--dim);font-weight:400;">'+fmt(m)+'月评级</span></h3>'+
+    '<div class="lvl-btns">'+
+    ['blue','yellow','red','none'].map(function(k){return '<button class="lb-'+k[0]+(k==='none'?' lb-n':'')+(lv===k?' sel':'')+'" data-lv="'+k+'">'+(k==='none'?'无':LVL[k].name)+'</button>';}).join('')+
+    '</div><input id="popScore" type="number" min="0" max="100" placeholder="分数（0-100）" value="'+sc+'">'+
+    '<input id="popNote" type="text" placeholder="备注（问题摘要，展示端悬停可见）" value="'+nt.replace(/"/g,'&quot;')+'">'+
+    '<div class="btns"><button class="btn secondary" id="popCancel">取消</button><button class="btn" id="popOk">确定</button></div></div>';
+  document.body.appendChild(div);
+  div.querySelectorAll('[data-lv]').forEach(function(b){b.onclick=function(){div.querySelectorAll('[data-lv]').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');div._lv=b.getAttribute('data-lv');};});
+  div._lv=lv;
+  document.getElementById('popCancel').onclick=function(){div.remove();};
+  document.getElementById('popOk').onclick=function(){
+    var newLv=div._lv, ns=document.getElementById('popScore').value, nn=document.getElementById('popNote').value;
+    var key=sec+'|'+grp;
+    if(!data.months[m])data.months[m]={};
+    if(newLv==='none'){delete data.months[m][key];}
+    else{data.months[m][key]={level:newLv,score:ns===''?null:+ns,note:nn};}
+    if(!data.months[m]||Object.keys(data.months[m]).length===0){}
+    dirty=true;markDirty();div.remove();renderAdmin();renderShow();
+  };
+}
+
+/* ============ 事件 ============ */
+document.getElementById('monthSel').onchange=function(){curMonth=this.value;renderShow();if(!document.getElementById('adminView').classList.contains('hidden'))renderAdmin();};
+function addChip(inputId,listName){
+  var v=document.getElementById(inputId).value.trim();
+  if(!v)return;
+  if(data[listName].indexOf(v)>=0){alert('已存在');return;}
+  data[listName].push(v);document.getElementById(inputId).value='';
+  dirty=true;markDirty();renderAdmin();
+}
+document.getElementById('secAdd').onclick=function(){addChip('secInput','sections');};
+document.getElementById('grpAdd').onclick=function(){addChip('grpInput','groups');};
+document.getElementById('saveBtn').onclick=function(){
+  var b=this;b.disabled=true;b.textContent='保存中…';
+  saveCloud(function(ok){
+    b.disabled=false;b.textContent='保存到云端';
+    if(ok){dirty=false;markDirty();alert('已保存，展示端即时生效');refreshMonths(curMonth);}
+    else alert('保存失败，请检查网络后重试');
+  });
+};
+document.getElementById('loginBtn').onclick=function(){
+  if(document.getElementById('pwdInput').value===ADMIN_PWD){
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.remove('hidden');
+    renderAdmin();
+  } else document.getElementById('loginErr').textContent='口令错误';
+};
+document.getElementById('pwdInput').onkeydown=function(e){if(e.key==='Enter')document.getElementById('loginBtn').click();};
+window.addEventListener('hashchange',route);
+function route(){
+  var isAdmin=location.hash==='#/admin';
+  document.getElementById('navAdmin').style.background=isAdmin?'rgba(255,255,255,.2)':'';
+  document.getElementById('navShow').style.background=!isAdmin?'rgba(255,255,255,.2)':'';
+  document.getElementById('showView').classList.toggle('hidden',isAdmin);
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('adminView').classList.add('hidden');
+  if(isAdmin){
+    if(sessionStorage.getItem('hq_admin')==='1'){document.getElementById('adminView').classList.remove('hidden');renderAdmin();}
+    else document.getElementById('loginView').classList.remove('hidden');
+  } else renderShow();
+}
+document.getElementById('loginBtn').addEventListener('click',function(){sessionStorage.setItem('hq_admin','1');});
+
+/* ============ 启动 ============ */
+load(function(){
+  curMonth=refreshMonths();
+  route();
+});
+</script>
+</body>
+</html>
