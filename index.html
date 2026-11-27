@@ -105,8 +105,8 @@ td.editable:hover{outline:3px solid rgba(29,95,168,.35);outline-offset:-3px;}
       <span class="lg"><i style="background:var(--blue-bg);border:2px solid var(--blue)"></i>蓝 · 达标（≥90分）</span>
       <span class="lg"><i style="background:var(--yellow-bg);border:2px solid var(--yellow)"></i>黄 · 预警（80–89分）</span>
       <span class="lg"><i style="background:var(--red-bg);border:2px solid var(--red)"></i>红 · 不达标（&lt;80分）</span>
-      <span class="lg"><span class="arrow-badge up" style="position:static">↑</span>较上月降级</span>
-      <span class="lg"><span class="arrow-badge down" style="position:static">↓</span>较上月升级</span>
+      <span class="lg"><span class="arrow-badge down" style="position:static;color:var(--blue)">↑</span>较上月升级</span>
+      <span class="lg"><span class="arrow-badge up" style="position:static;color:var(--red)">↓</span>较上月降级</span>
       <span class="lg">色点 = 近6月评级历史</span>
     </div>
     <div class="matrix-wrap">
@@ -167,7 +167,22 @@ var RAW='https://raw.githubusercontent.com/'+OWNER+'/'+REPO+'/'+BRANCH+'/'+DATAF
 var LVL={blue:{cls:'c-blue',bg:'var(--blue)',name:'蓝'},yellow:{cls:'c-yellow',bg:'var(--yellow)',name:'黄'},red:{cls:'c-red',bg:'var(--red)',name:'红'},none:{cls:'c-none',bg:'#B7C2CC',name:'—'}};
 
 /* ============ 状态 ============ */
-var data=null, dirty=false, curMonth=null, editing=null;
+var data=null, dirty=false, curMonth=null, editing=null, SHA_CACHE=null;
+function xhrWithTimeout(method,url,headers,body,timeout,cb){
+  var x=new XMLHttpRequest();x.open(method,url,true);
+  for(var k in headers)x.setRequestHeader(k,headers[k]);
+  var done=false, timer=setTimeout(function(){if(!done){done=true;cb(0,'timeout');}},timeout);
+  x.onload=function(){if(done)return;done=true;clearTimeout(timer);cb(x.status,x);};
+  x.onerror=function(){if(done)return;done=true;clearTimeout(timer);cb(0,'error');};
+  if(body!=null)x.send(body);else x.send();
+}
+function fetchSha(cb){ /* 获取data.json sha，先缓存后API，各20秒超时 */
+  if(SHA_CACHE){cb(SHA_CACHE);return;}
+  xhrWithTimeout('GET','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE+'?ref='+BRANCH,{'Authorization':'token '+TOKEN,'Accept':'application/vnd.github+json'},null,20000,function(st,x){
+    if(st===200){try{SHA_CACHE=JSON.parse(x.responseText).sha;cb(SHA_CACHE);return;}catch(e){}}
+    cb(null);
+  });
+}
 
 /* ============ 数据加载 ============ */
 function load(cb){
@@ -197,25 +212,20 @@ function seed(){
     order:['2026-11']
   };
 }
-function saveCloud(cb){
-  var payload={message:'update ratings '+new Date().toISOString().slice(0,16),content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2)))),branch:BRANCH};
-  var fin=function(ok,msg){cb(ok,msg);};
-  var xhr=new XMLHttpRequest();
-  xhr.open('GET','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE+'?ref='+BRANCH,true);
-  xhr.setRequestHeader('Authorization','token '+TOKEN);
-  xhr.setRequestHeader('Accept','application/vnd.github+json');
-  xhr.onload=function(){
-    if(xhr.status===200){try{payload.sha=JSON.parse(xhr.responseText).sha;}catch(e){}}
-    var x2=new XMLHttpRequest();
-    x2.open('PUT','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE,true);
-    x2.setRequestHeader('Authorization','token '+TOKEN);
-    x2.setRequestHeader('Accept','application/vnd.github+json');
-    x2.onload=function(){fin(x2.status===200&&x2.status<300,x2.status);};
-    x2.onerror=function(){fin(false,'网络错误');};
-    x2.send(JSON.stringify(payload));
-  };
-  x2.onerror=function(){fin(false,'网络错误');};
-  x2.send();
+function saveCloud(cb){ /* PUT直传：超时重试+409重取sha */
+  var content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  function attempt(sha,retries){
+    if(!sha){cb(false,'无法连接GitHub');return;}
+    var body=JSON.stringify({message:'update ratings '+new Date().toISOString().slice(0,16),content:content,branch:BRANCH,sha:sha});
+    xhrWithTimeout('PUT','https://api.github.com/repos/'+OWNER+'/'+REPO+'/contents/'+DATAFILE,{'Authorization':'token '+TOKEN,'Accept':'application/vnd.github+json'},body,30000,function(st,x){
+      if(st>=200&&st<300){cb(true);return;}
+      if(st===409&&retries>0){SHA_CACHE=null;fetchSha(function(ns){attempt(ns,retries-1);});return;}
+      if((st===0||st>=500)&&retries>0){setTimeout(function(){attempt(sha,retries-1);},1500);return;}
+      if(st===401||st===403){SHA_CACHE=null;}
+      cb(false,'HTTP '+st);
+    });
+  }
+  fetchSha(function(sha){attempt(sha,2);});
 }
 
 /* ============ 工具 ============ */
@@ -249,13 +259,13 @@ function renderShow(){
       var arr='';
       if(cur&&prev&&prev.level!=='none'&&cur.level!=='none'){
         var o={none:0,blue:1,yellow:2,red:3};
-        if(o[cur.level]>o[prev.level])arr='<span class="arrow-badge up">↑</span>';
-        else if(o[cur.level]<o[prev.level])arr='<span class="arrow-badge down">↓</span>';
+        if(o[cur.level]<o[prev.level])arr='<span class="arrow-badge down" style="color:var(--blue)">↑</span>';
+        else if(o[cur.level]>o[prev.level])arr='<span class="arrow-badge up" style="color:var(--red)">↓</span>';
       }
       var hist='';
       if(cur){
         var dots='';
-        monthList().slice(-6).forEach(function(hm){
+        monthList().slice(0,idx(m)+1).slice(-6).forEach(function(hm){
           var h=lvOf(sec,g,hm);
           if(h&&h.level!=='none')dots+='<span class="hdot" style="background:'+LVL[h.level].bg+'"></span>';
         });
@@ -424,7 +434,7 @@ function route(){
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('adminView').classList.add('hidden');
   if(isAdmin){
-    if(sessionStorage.getItem('hq_admin')==='1'){document.getElementById('adminView').classList.remove('hidden');renderAdmin();}
+    if(sessionStorage.getItem('hq_admin')==='1'){document.getElementById('adminView').classList.remove('hidden');renderAdmin();fetchSha(function(){});}
     else document.getElementById('loginView').classList.remove('hidden');
   } else renderShow();
 }
